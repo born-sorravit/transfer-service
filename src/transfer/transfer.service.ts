@@ -15,7 +15,7 @@ export class TransferService {
         await this.transferRepository.transferWithdrawProcess(data)
     }
 
-    async withdrawSuccess(data: any) {
+    async transferSuccess(data: any) {
         console.log(`UserId : ${data.account_number} => Transfer withdraw success || Your balance ${data.balance}`);
     }
 
@@ -23,7 +23,8 @@ export class TransferService {
         await this.transferRepository.transferDepositProcess(data)
     }
 
-    async depositSuccess(data: any) {
-        console.log(`UserId : ${data.account_number} => Transfer deposit success || Your balance ${data.balance}`);
+    async transferFailed(data: any) {
+        await this.transferRepository.transferWithdrawProcessFailed(data)
     }
+
 }

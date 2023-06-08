@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProducerService } from 'src/kafka/producer.service';
 import { DataSource, Repository } from 'typeorm';
 import { TransferRequestDto } from './dto/transfer-request.dto';
 import { Transfer } from './entities/transfer.entity';
 import { TransferTopics } from './topics/transfer.enum';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class TransferRepository extends Repository<Transfer> {
@@ -17,8 +18,6 @@ export class TransferRepository extends Repository<Transfer> {
     }
 
     async checkUserAccount(transferRequestDto: TransferRequestDto) {
-        console.log("transferRequestDto >>>", transferRequestDto);
-
         return this.producerService.produce({
             topic: TransferTopics.TRANSFER_CHECK_USER,
             messages: [
@@ -36,16 +35,20 @@ export class TransferRepository extends Repository<Transfer> {
 
     async transferWithdrawProcess(data: any) {
         // ถอนเงินสำหรับผู้โอน
+        const transferId = uuidv4();
+        const formatteData = {
+            ...data,
+            transaction_id: transferId
+        }
+        // throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+
         this.producerService.produce({
             topic: TransferTopics.TRANSFER_WITHDRAW_PROCESS,
             messages: [
                 {
-                    value: JSON.stringify({
-                        from_account_number: data.from_account_number,
-                        balance: data.balance,
-                        amount: data.amount,
-                        payment_type: data.payment_type
-                    })
+                    value: JSON.stringify(
+                        formatteData
+                    )
                 }
             ]
         })
@@ -63,6 +66,18 @@ export class TransferRepository extends Repository<Transfer> {
                         amount: data.amount,
                         payment_type: data.payment_type
                     })
+                }
+            ]
+        })
+    }
+
+    async transferWithdrawProcessFailed(data: any) {
+        // ฝากเงินสำหรับผู้รับโอน
+        this.producerService.produce({
+            topic: TransferTopics.TRANSFER_WITHDRAW_PROCESS_FAILED,
+            messages: [
+                {
+                    value: JSON.stringify(data)
                 }
             ]
         })
